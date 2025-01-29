@@ -1,12 +1,8 @@
-# 2024
+# Advent of Code 2024 🎄
 
-To install dependencies:
+TypeScript solutions for AoC 2024.
 
-```bash
-bun install
-```
-
-To run:
+You can run each challenge's code with bun:
 
 ```bash
 bun run index.ts
