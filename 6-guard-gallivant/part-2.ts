@@ -108,7 +108,16 @@ export async function main(
     if (isObstacle) {
       dir = nextDir;
     } else {
-      const isPossibleObstacle = checkIfLeadsToLoop(i, j, nextDir);
+      const check = checkIfLeadsToLoop(i, j, nextDir);
+
+      // check if the guard has passed this point before
+      const isPossibleObstacle =
+        check &&
+        !visited.has(`${nextI},${nextJ},R`) &&
+        !visited.has(`${nextI},${nextJ},L`) &&
+        !visited.has(`${nextI},${nextJ},U`) &&
+        !visited.has(`${nextI},${nextJ},D`);
+
       if (isPossibleObstacle) possibleObstacles.add(`${nextI},${nextJ}`);
 
       if (shouldPrintDebug({ debugMode, result: isPossibleObstacle })) {

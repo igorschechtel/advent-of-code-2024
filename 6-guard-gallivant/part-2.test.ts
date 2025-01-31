@@ -29,25 +29,25 @@ test('None', async () => {
 
 test('False Positive!', async () => {
   const input = await readFromFile(`${testDir}/false-positive.txt`);
-  const output = await run(input, 'ALL');
+  const output = await run(input);
   expect(output.size).toBe(1);
 });
 
-test.skip('Output of Bounds', async () => {
+test('Out of Bounds', async () => {
   const input = await readFromFile(`${testDir}/out-of-bounds.txt`);
   const output = await run(input);
   expect(output.size).toBe(0);
 });
 
-test.skip('Another test', async () => {
+test('Another test', async () => {
   const input = await readFromFile(`${testDir}/another.txt`);
   const output = await run(input);
   expect(output.size).toBe(4);
 });
 
-test.skip('Electric boogaloo', async () => {
+test('Electric boogaloo', async () => {
   const input = await readFromFile(`${testDir}/electric-boogaloo.txt`);
-  const output = await run(input);
+  const output = await run(input, 'ALL');
   expect(output.size).toBe(1);
 });
 
