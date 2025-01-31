@@ -1,67 +1,137 @@
-const input = Bun.file(`${import.meta.dir}/input.txt`);
-const content = await input.text();
+type Direction = 'U' | 'R' | 'D' | 'L';
 
-const lines = content.split('\n');
+type PathString = `${number},${number},${Direction}`;
+type CoordinatesString = `${number},${number}`;
 
-const rows = lines.length;
-const cols = lines[0].length;
+type DebugMode = 'OFF' | 'POSITIVES' | 'ALL';
 
-let i = lines.findIndex((line) => line.includes('^'));
-let j = lines[i].indexOf('^');
-
-const set = new Set<string>();
-
-function isOutOfBounds(i: number, j: number) {
-  if (i < 0 || j < 0) return true;
-  if (i >= rows) return true;
-  if (j >= cols) return true;
-  return false;
+function shouldPrintDebug(args: { debugMode: DebugMode; result: boolean }) {
+  if (args.debugMode === 'OFF') return false;
+  if (args.debugMode === 'ALL') return true;
+  return args.result;
 }
 
-function getNextCoordinates(i: number, j: number, dir: Direction) {
-  if (dir === 'up') return [i - 1, j];
-  if (dir === 'down') return [i + 1, j];
-  if (dir === 'left') return [i, j - 1];
-  return [i, j + 1];
-}
+export async function main(
+  content: string,
+  debugMode: DebugMode = 'OFF'
+): Promise<Set<string>> {
+  const lines = content.split('\n');
 
-function getNextDirection(dir: Direction) {
-  if (dir === 'up') return 'right';
-  if (dir === 'down') return 'left';
-  if (dir === 'left') return 'up';
-  return 'down';
-}
+  const rows = lines.length;
+  const cols = lines[0].length;
 
-function isLineVisited(i: number, j: number, dir: Direction) {
-  while (true) {
-    if (set.has(`${i},${j},${dir}`)) return true;
+  let i = lines.findIndex((line) => line.includes('^'));
+  let j = lines[i].indexOf('^');
+
+  const visited = new Set<PathString>();
+  const pathsLeadsToLoop = new Set<PathString>();
+  const possibleObstacles = new Set<CoordinatesString>();
+
+  function isOutOfBounds(i: number, j: number) {
+    if (i < 0 || j < 0) return true;
+    if (i >= rows) return true;
+    if (j >= cols) return true;
+    return false;
+  }
+
+  function getNextCoordinates(i: number, j: number, dir: Direction) {
+    if (dir === 'U') return [i - 1, j];
+    if (dir === 'D') return [i + 1, j];
+    if (dir === 'L') return [i, j - 1];
+    return [i, j + 1];
+  }
+
+  function getNextDirection(dir: Direction) {
+    if (dir === 'U') return 'R';
+    if (dir === 'D') return 'L';
+    if (dir === 'L') return 'U';
+    return 'D';
+  }
+
+  function checkIfLeadsToLoop(i: number, j: number, dir: Direction) {
+    const pathVisited = new Set<string>(visited);
+    while (true) {
+      if (pathVisited.has(`${i},${j},${dir}`)) {
+        pathsLeadsToLoop.add(`${i},${j},${dir}`);
+        return true;
+      }
+      if (pathsLeadsToLoop.has(`${i},${j},${dir}`)) return true;
+
+      const [nextI, nextJ] = getNextCoordinates(i, j, dir);
+
+      if (isOutOfBounds(nextI, nextJ)) {
+        return false;
+      }
+
+      pathVisited.add(`${i},${j},${dir}`);
+
+      if (lines[nextI][nextJ] === '#') {
+        dir = getNextDirection(dir);
+      } else {
+        i = nextI;
+        j = nextJ;
+      }
+    }
+  }
+
+  function printGrid(args: {
+    grid: string[];
+    position: [number, number, Direction];
+  }) {
+    const grid = args.grid.map((line) => line.replace(/\^/, '.'));
+    const [i, j, dir] = args.position;
+    const symbol =
+      dir === 'U' ? '^' : dir === 'D' ? 'v' : dir === 'L' ? '<' : '>';
+    grid[i] = grid[i].substring(0, j) + symbol + grid[i].substring(j + 1);
+
     const [nextI, nextJ] = getNextCoordinates(i, j, dir);
-    if (isOutOfBounds(nextI, nextJ) || lines[nextI][nextJ] === '#')
-      return false;
-    i = nextI;
-    j = nextJ;
+
+    if (!isOutOfBounds(nextI, nextJ)) {
+      grid[nextI] =
+        grid[nextI].substring(0, nextJ) +
+        '?' +
+        grid[nextI].substring(nextJ + 1);
+    }
+
+    console.log(grid.join('\n'));
   }
+
+  let dir: Direction = 'U';
+
+  while (true) {
+    visited.add(`${i},${j},${dir}`);
+    const [nextI, nextJ] = getNextCoordinates(i, j, dir);
+    if (isOutOfBounds(nextI, nextJ)) break;
+    const isObstacle = lines[nextI][nextJ] === '#';
+
+    const nextDir = getNextDirection(dir);
+    if (isObstacle) {
+      dir = nextDir;
+    } else {
+      const isPossibleObstacle = checkIfLeadsToLoop(i, j, nextDir);
+      if (isPossibleObstacle) possibleObstacles.add(`${nextI},${nextJ}`);
+
+      if (shouldPrintDebug({ debugMode, result: isPossibleObstacle })) {
+        printGrid({ grid: lines, position: [i, j, dir] });
+        console.log(
+          '\n',
+          isPossibleObstacle ? '✅' : '❌',
+          `${nextI},${nextJ}\n\n`
+        );
+      }
+
+      i = nextI;
+      j = nextJ;
+    }
+  }
+
+  return possibleObstacles;
 }
 
-type Direction = 'up' | 'right' | 'down' | 'left';
-let dir: Direction = 'up';
+async function run() {
+  const input = Bun.file(`${import.meta.dir}/input.txt`);
+  const content = await input.text();
+  const result = await main(content);
 
-let count = 0;
-
-while (true) {
-  set.add(`${i},${j},${dir}`);
-  const [nextI, nextJ] = getNextCoordinates(i, j, dir);
-  if (isOutOfBounds(nextI, nextJ)) break;
-  const isObstacle = lines[nextI][nextJ] === '#';
-
-  const nextDir = getNextDirection(dir);
-  if (isObstacle) {
-    dir = nextDir;
-  } else {
-    if (isLineVisited(i, j, nextDir)) count++;
-    i = nextI;
-    j = nextJ;
-  }
+  console.log('Final result:', result.size);
 }
-
-console.log(count);

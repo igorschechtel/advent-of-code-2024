@@ -1,8 +1,8 @@
 {
-  "lockfileVersion": 1,
+  "lockfileVersion": 0,
   "workspaces": {
     "": {
-      "name": "2024",
+      "name": "advent-of-code-2024",
       "devDependencies": {
         "@types/bun": "latest",
       },
