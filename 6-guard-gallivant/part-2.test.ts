@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
-import { original as run } from './part-2';
+import { run as original } from './part-2.1-original';
+import { run as bruteForce } from './part-2.2-brute-force';
 
 const testDir = `${import.meta.dir}/test-cases`;
 
@@ -9,116 +10,56 @@ async function readFromFile(path: string) {
   return content;
 }
 
-test('Default test case', async () => {
-  const input = await readFromFile(`${testDir}/default.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(6);
+const mapFileNameToResult: Record<string, number> = {
+  'default.txt': 6,
+  'straight-loop.txt': 1,
+  'none.txt': 0,
+  'false-positive.txt': 1,
+  'out-of-bounds.txt': 0,
+  'another.txt': 4,
+  'electric-boogaloo.txt': 1,
+  'guard-strikes-back.txt': 1,
+  'return-of-the-guard.txt': 6,
+  'return-of-the-guard-2.txt': 7,
+  'the-2-guards.txt': 4,
+  'none-2.txt': 0,
+  'none-3.txt': 1,
+  'another-2.txt': 6,
+  'overestimating.txt': 4,
+  'reddit-1.txt': 6,
+  'reddit-2.txt': 7,
+  'reddit-3.txt': 4,
+  'reddit-4.txt': 3,
+};
+
+test('Original solution', async () => {
+  for (const [fileName, result] of Object.entries(mapFileNameToResult)) {
+    const input = await readFromFile(`${testDir}/${fileName}`);
+    const output = await original(input);
+    expect(output).toEqual(result);
+  }
 });
 
-test('Straight loop', async () => {
-  const input = await readFromFile(`${testDir}/straight-loop.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(1);
+test('Brute force solution', async () => {
+  for (const [fileName, result] of Object.entries(mapFileNameToResult)) {
+    const input = await readFromFile(`${testDir}/${fileName}`);
+    const output = await bruteForce(input);
+    expect(output).toEqual(result);
+  }
 });
 
-test('None', async () => {
-  const input = await readFromFile(`${testDir}/none.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(0);
-});
+test('Original solution vs Brute force solution', async () => {
+  const expectedResult = 1789;
 
-test('False Positive!', async () => {
-  const input = await readFromFile(`${testDir}/false-positive.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(1);
-});
+  const input = await readFromFile('./input.txt');
+  console.time('Original solution');
+  const originalOutput = await original(input);
+  console.timeEnd('Original solution');
 
-test('Out of Bounds', async () => {
-  const input = await readFromFile(`${testDir}/out-of-bounds.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(0);
-});
+  console.time('Brute force solution');
+  const bruteForceOutput = await bruteForce(input);
+  console.timeEnd('Brute force solution');
 
-test('Another test', async () => {
-  const input = await readFromFile(`${testDir}/another.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(4);
-});
-
-test('Electric boogaloo', async () => {
-  const input = await readFromFile(`${testDir}/electric-boogaloo.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(1);
-});
-
-test('The guard strikes back', async () => {
-  const input = await readFromFile(`${testDir}/guard-strikes-back.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(1);
-});
-
-test('Return of the guard', async () => {
-  const input = await readFromFile(`${testDir}/return-of-the-guard.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(6);
-});
-
-test('Return of the guard 2', async () => {
-  const input = await readFromFile(`${testDir}/return-of-the-guard-2.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(7);
-});
-
-test('The 2 guards', async () => {
-  const input = await readFromFile(`${testDir}/the-2-guards.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(4);
-});
-
-test('None again', async () => {
-  const input = await readFromFile(`${testDir}/none-2.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(0);
-});
-
-test('None again', async () => {
-  const input = await readFromFile(`${testDir}/none-3.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(1);
-});
-
-test('Another 2', async () => {
-  const input = await readFromFile(`${testDir}/another-2.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(6);
-});
-
-test('Is overestimating?', async () => {
-  const input = await readFromFile(`${testDir}/overestimating.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(4);
-});
-
-test('Reddit 1', async () => {
-  const input = await readFromFile(`${testDir}/reddit-1.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(6);
-});
-
-test('Reddit 2', async () => {
-  const input = await readFromFile(`${testDir}/reddit-2.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(7);
-});
-
-test('Reddit 3', async () => {
-  const input = await readFromFile(`${testDir}/reddit-3.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(4);
-});
-
-test('Reddit 4', async () => {
-  const input = await readFromFile(`${testDir}/reddit-4.txt`);
-  const output = await run(input);
-  expect(output.size).toBe(3);
+  expect(originalOutput).toEqual(expectedResult);
+  expect(bruteForceOutput).toEqual(expectedResult);
 });
