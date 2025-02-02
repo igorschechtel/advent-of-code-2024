@@ -5,13 +5,7 @@ type CoordinatesString = `${number},${number}`;
 
 type DebugMode = 'OFF' | 'POSITIVES' | 'ALL';
 
-function shouldPrintDebug(args: { debugMode: DebugMode; result: boolean }) {
-  if (args.debugMode === 'OFF') return false;
-  if (args.debugMode === 'ALL') return true;
-  return args.result;
-}
-
-export async function main(
+export async function original(
   content: string,
   debugMode: DebugMode = 'OFF'
 ): Promise<Set<string>> {
@@ -24,7 +18,6 @@ export async function main(
   let j = lines[i].indexOf('^');
 
   const visited = new Set<PathString>();
-  const pathsLeadsToLoop = new Set<PathString>();
   const possibleObstacles = new Set<CoordinatesString>();
 
   function isOutOfBounds(i: number, j: number) {
@@ -32,6 +25,12 @@ export async function main(
     if (i >= rows) return true;
     if (j >= cols) return true;
     return false;
+  }
+
+  function shouldPrintDebug(result: boolean): boolean {
+    if (debugMode === 'OFF') return false;
+    if (debugMode === 'ALL') return true;
+    return result;
   }
 
   function getNextCoordinates(i: number, j: number, dir: Direction) {
@@ -48,24 +47,31 @@ export async function main(
     return 'D';
   }
 
-  function checkIfLeadsToLoop(i: number, j: number, dir: Direction) {
+  function checkObstacleLeadsToLoop(i: number, j: number, dir: Direction) {
     const pathVisited = new Set<string>(visited);
+
+    const [nextI, nextJ] = getNextCoordinates(i, j, dir);
+    if (isOutOfBounds(nextI, nextJ)) return false;
+
+    // adds the obstacle to the path
+    const pathLines = lines.map((line, i) =>
+      i === nextI
+        ? `${line.substring(0, nextJ)}#${line.substring(nextJ + 1)}`
+        : line
+    );
+
+    dir = getNextDirection(dir);
+
     while (true) {
-      if (pathVisited.has(`${i},${j},${dir}`)) {
-        pathsLeadsToLoop.add(`${i},${j},${dir}`);
-        return true;
-      }
-      if (pathsLeadsToLoop.has(`${i},${j},${dir}`)) return true;
+      if (pathVisited.has(`${i},${j},${dir}`)) return true;
 
       const [nextI, nextJ] = getNextCoordinates(i, j, dir);
 
-      if (isOutOfBounds(nextI, nextJ)) {
-        return false;
-      }
+      if (isOutOfBounds(nextI, nextJ)) return false;
 
       pathVisited.add(`${i},${j},${dir}`);
 
-      if (lines[nextI][nextJ] === '#') {
+      if (pathLines[nextI][nextJ] === '#') {
         dir = getNextDirection(dir);
       } else {
         i = nextI;
@@ -104,11 +110,10 @@ export async function main(
     if (isOutOfBounds(nextI, nextJ)) break;
     const isObstacle = lines[nextI][nextJ] === '#';
 
-    const nextDir = getNextDirection(dir);
     if (isObstacle) {
-      dir = nextDir;
+      dir = getNextDirection(dir);
     } else {
-      const check = checkIfLeadsToLoop(i, j, nextDir);
+      const check = checkObstacleLeadsToLoop(i, j, dir);
 
       // check if the guard has passed this point before
       const isPossibleObstacle =
@@ -120,12 +125,13 @@ export async function main(
 
       if (isPossibleObstacle) possibleObstacles.add(`${nextI},${nextJ}`);
 
-      if (shouldPrintDebug({ debugMode, result: isPossibleObstacle })) {
+      if (shouldPrintDebug(isPossibleObstacle)) {
+        console.log('\n');
         printGrid({ grid: lines, position: [i, j, dir] });
         console.log(
           '\n',
           isPossibleObstacle ? '✅' : '❌',
-          `${nextI},${nextJ}\n\n`
+          `${nextI},${nextJ}\n`
         );
       }
 
@@ -138,9 +144,11 @@ export async function main(
 }
 
 async function run() {
-  const input = Bun.file(`${import.meta.dir}/input.txt`);
-  const content = await input.text();
-  const result = await main(content);
+  const file = Bun.file(`${import.meta.dir}/input.txt`);
+  const input = await file.text();
+  const output = await original(input, 'POSITIVES');
 
-  console.log('Final result:', result.size);
+  console.log('Final result:', output.size);
 }
+
+run();
